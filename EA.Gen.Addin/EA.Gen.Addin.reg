@@ -1,0 +1,50 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}]
+@="EA.Gen.Addin.AddinRouter"
+
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\Implemented Categories]
+
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\Implemented Categories\{62C8FE65-4EBB-45e7-B440-6E39B2CDBF29}]
+
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\InprocServer32]
+@="mscoree.dll"
+"ThreadingModel"="Both"
+"Class"="EA.Gen.Addin.AddinRouter"
+"Assembly"="EA.Gen.Addin, Version=1.0.0.0, Culture=neutral, PublicKeyToken=f0395cb531b5118b"
+"RuntimeVersion"="v4.0.30319"
+"CodeBase"="file:///C:/Program Files (x86)/Sparx Systems/EA/EA.Gen.Addin.dll"
+
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\InprocServer32\1.0.0.0]
+"Class"="EA.Gen.Addin.AddinRouter"
+"Assembly"="EA.Gen.Addin, Version=1.0.0.0, Culture=neutral, PublicKeyToken=f0395cb531b5118b"
+"RuntimeVersion"="v4.0.30319"
+"CodeBase"="file:///C:/Program Files (x86)/Sparx Systems/EA/EA.Gen.Addin.dll"
+
+[HKEY_CLASSES_ROOT\Wow6432Node\CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\ProgId]
+@="EA.Gen.Addin.AddinRouter"
+
+[HKEY_CLASSES_ROOT\TypeLib\{27B6792F-4247-41D1-A681-4D03ED3EDA2A}]
+
+[HKEY_CLASSES_ROOT\TypeLib\{27B6792F-4247-41D1-A681-4D03ED3EDA2A}\1.0]
+@="EA.Gen.Addin is a Sparx addin router to load actual addins using repository information"
+
+[HKEY_CLASSES_ROOT\TypeLib\{27B6792F-4247-41D1-A681-4D03ED3EDA2A}\1.0\0]
+
+[HKEY_CLASSES_ROOT\TypeLib\{27B6792F-4247-41D1-A681-4D03ED3EDA2A}\1.0\0\win32]
+@="C:\\Program Files (x86)\\Sparx Systems\\EA\\EA.Gen.Addin.tlb"
+
+[HKEY_CLASSES_ROOT\TypeLib\{27B6792F-4247-41D1-A681-4D03ED3EDA2A}\1.0\FLAGS]
+@="0"
+
+[HKEY_CLASSES_ROOT\TypeLib\{27B6792F-4247-41D1-A681-4D03ED3EDA2A}\1.0\HELPDIR]
+@="C:\\Program Files (x86)\\Sparx Systems\\EA"
+
+[HKEY_CLASSES_ROOT\EA.Gen.Addin.AddinRouter]
+@="EA.Gen.Addin.AddinRouter"
+
+[HKEY_CLASSES_ROOT\EA.Gen.Addin.AddinRouter\CLSID]
+@="{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Sparx Systems\EAAddins\EA.Gen.Addin]
+@="EA.Gen.Addin.AddinRouter"

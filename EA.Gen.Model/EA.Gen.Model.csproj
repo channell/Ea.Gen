@@ -1,0 +1,165 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{CEC284FB-23E7-4BED-A098-9EB5825EBFE1}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>EA.Gen.Model</RootNamespace>
+    <AssemblyName>EA.Gen.Model</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <RegisterForComInterop>false</RegisterForComInterop>
+    <DocumentationFile>bin\Debug\EA.Gen.Model.XML</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Sparx.cs" />
+    <Compile Include="t_attribute.cs" />
+    <Compile Include="t_attributeconstraints.cs" />
+    <Compile Include="t_attributetag.cs" />
+    <Compile Include="t_authors.cs" />
+    <Compile Include="t_cardinality.cs" />
+    <Compile Include="t_category.cs" />
+    <Compile Include="t_clients.cs" />
+    <Compile Include="t_complexitytypes.cs" />
+    <Compile Include="t_connector.cs" />
+    <Compile Include="t_connectorconstraint.cs" />
+    <Compile Include="t_connectortag.cs" />
+    <Compile Include="t_connectortypes.cs" />
+    <Compile Include="t_constants.cs" />
+    <Compile Include="t_constrainttypes.cs" />
+    <Compile Include="t_datatypes.cs" />
+    <Compile Include="t_diagram.cs" />
+    <Compile Include="t_diagramlinks.cs" />
+    <Compile Include="t_diagramobjects.cs" />
+    <Compile Include="t_diagramtypes.cs" />
+    <Compile Include="t_document.cs" />
+    <Compile Include="t_ecf.cs" />
+    <Compile Include="t_efforttypes.cs" />
+    <Compile Include="t_files.cs" />
+    <Compile Include="t_glossary.cs" />
+    <Compile Include="t_image.cs" />
+    <Compile Include="t_issues.cs" />
+    <Compile Include="t_lists.cs" />
+    <Compile Include="t_mainttypes.cs" />
+    <Compile Include="t_method.cs" />
+    <Compile Include="t_metrictypes.cs" />
+    <Compile Include="t_object.cs" />
+    <Compile Include="t_objectconstraint.cs" />
+    <Compile Include="t_objecteffort.cs" />
+    <Compile Include="t_objectfiles.cs" />
+    <Compile Include="t_objectmetrics.cs" />
+    <Compile Include="t_objectproblems.cs" />
+    <Compile Include="t_objectproperties.cs" />
+    <Compile Include="t_objectrequires.cs" />
+    <Compile Include="t_objectresource.cs" />
+    <Compile Include="t_objectrisks.cs" />
+    <Compile Include="t_objectscenarios.cs" />
+    <Compile Include="t_objecttests.cs" />
+    <Compile Include="t_objecttrx.cs" />
+    <Compile Include="t_objecttypes.cs" />
+    <Compile Include="t_operation.cs" />
+    <Compile Include="t_operationparams.cs" />
+    <Compile Include="t_operationposts.cs" />
+    <Compile Include="t_operationpres.cs" />
+    <Compile Include="t_operationtag.cs" />
+    <Compile Include="t_package.cs" />
+    <Compile Include="t_palette.cs" />
+    <Compile Include="t_phase.cs" />
+    <Compile Include="t_primitives.cs" />
+    <Compile Include="t_problemtypes.cs" />
+    <Compile Include="t_projectroles.cs" />
+    <Compile Include="t_propertytypes.cs" />
+    <Compile Include="t_requiretypes.cs" />
+    <Compile Include="t_resources.cs" />
+    <Compile Include="t_risktypes.cs" />
+    <Compile Include="t_roleconstraint.cs" />
+    <Compile Include="t_rtfreport.cs" />
+    <Compile Include="t_rules.cs" />
+    <Compile Include="t_scenariotypes.cs" />
+    <Compile Include="t_script.cs" />
+    <Compile Include="t_secgroup.cs" />
+    <Compile Include="t_seclocks.cs" />
+    <Compile Include="t_secpermission.cs" />
+    <Compile Include="t_secpolicies.cs" />
+    <Compile Include="t_secuser.cs" />
+    <Compile Include="t_secusergroup.cs" />
+    <Compile Include="t_snapshot.cs" />
+    <Compile Include="t_stereotypes.cs" />
+    <Compile Include="t_taggedvalue.cs" />
+    <Compile Include="t_tasks.cs" />
+    <Compile Include="t_tcf.cs" />
+    <Compile Include="t_template.cs" />
+    <Compile Include="t_testclass.cs" />
+    <Compile Include="t_testplans.cs" />
+    <Compile Include="t_testtypes.cs" />
+    <Compile Include="t_trxtypes.cs" />
+    <Compile Include="t_umlpattern.cs" />
+    <Compile Include="t_version.cs" />
+    <Compile Include="t_xref.cs" />
+    <Compile Include="t_xrefsystem.cs" />
+    <Compile Include="t_xrefuser.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+  <Target Name="AfterBuild" Condition=" '$(Configuration)' == 'Release'">
+    <Exec Command="..\nuget pack EA.Gen.Model.csproj -Prop Configuration=Release">
+    </Exec>
+  </Target>
+</Project>

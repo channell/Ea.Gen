@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>EA.Gen.Model</id>
+    <version>1.0.1</version>
+    <title>EA.Gen.Model</title>
+    <authors>Steve Channell</authors>
+    <owners>cepheis.com</owners>
+    <licenseUrl>https://opensource.org/licenses/MS-pl</licenseUrl>
+    <projectUrl>http://www.cepheis.com/Product/gen</projectUrl>
+    <iconUrl>http://www.sparxsystems.com/favicon.ico</iconUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <description>EDM code-first model of the Sparx Enterprise Architect repository for code generation and integration</description>
+    <releaseNotes>Downgraded to .NET 4.5 for greater compatibility</releaseNotes>
+    <copyright>Copyright Cepheis 2016</copyright>
+    <tags>
+      Cephei
+      Sparx
+      EF
+      Database
+      Data
+      O/RM
+      ADO.NET
+    </tags>
+    <dependencies>
+      <dependency id="EntityFramework" version="6.1.3" />
+    </dependencies>
+  </metadata>
+</package>
