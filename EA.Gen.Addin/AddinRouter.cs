@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Win32;
-using Microsoft.Practices.EnterpriseLibrary.Logging;
 using System.Security;
 using System.Security.Permissions;
 using System.Runtime.Remoting.Lifetime;
@@ -44,16 +43,22 @@ namespace EA.Gen.Addin
             {
                 if (repo != null && IsProjectOpen(repo))
                 {
-                    var xml = repo.SQLQuery("SELECT Script FROM t_script WHERE Notes like '%EA-Gen-Addin%JavaScript%'");
+                    var xml = repo.SQLQuery("SELECT Script FROM t_script WHERE Notes like '%EA-Gen-Addin%JavaScript%' OR Notes like '*EA-Gen-Addin*JavaScript*'");
 
                     if (xml.Contains('{'))
                     {
                         var json = xml.Substring(xml.IndexOf('{'));
                         json = json.Substring(0, json.LastIndexOf('}') + 1);
-                        Logger.Write(String.Format("loading addins using definition {0}", json), "Startup", 1);
+                        Log.Information("loading addins using definition {0}", json);
                         _model = ConfigSerialiser.ToGraph(json);
 
-                        Logger.Write("Init", "Startup", 3);
+                        // support legacy format
+                        if (_model.Assembly != null)
+                        {
+                            var l = (_model.Assemblies != null ? _model.Assemblies.ToList () : new List<string>());
+                            l.Add ( _model.Assembly );
+                            _model.Assemblies = l.ToArray ();
+                        }
 
                         PermissionSet ps1 = new PermissionSet(PermissionState.Unrestricted);
                         ps1.AddPermission(new SecurityPermission(SecurityPermissionFlag.AllFlags));
@@ -63,20 +68,25 @@ namespace EA.Gen.Addin
                         ads.DisallowApplicationBaseProbing = false;
                         ads.DisallowCodeDownload = false;
                         ads.PrivateBinPath = _model.Path;
-                        
+
                         // switch the config file if one provided
                         if (_model.Config != null)
                             ads.ConfigurationFile = _model.Config;
 
-                        _domain = AppDomain.CreateDomain("EA.Gen.Addin", null, ads, ps1);
+                        var asm = Assembly.GetExecutingAssembly();
+                        var strongnames = new string[] { asm.FullName };
+                        _domain = AppDomain.CreateDomain("EA.Gen.Addin", asm.Evidence, ads, ps1); 
 
-                        try
+                        foreach (var v in _model.Addins)
                         {
-                            foreach (var v in _model.Addins)
+                            object o = null;
+                            try
                             {
-                                var o = _domain.CreateInstanceAndUnwrap(_model.Assembly, v);
-                                var lease = RemotingServices.GetLifetimeService((MarshalByRefObject)o) as ILease;
-                                if (lease != null)
+                                foreach (var a in _model.Assemblies)
+                                {
+                                    o = _domain.CreateInstanceAndUnwrap(a, v);
+                                }
+                                if (o != null && RemotingServices.GetLifetimeService((MarshalByRefObject)o) is ILease lease)
                                 {
                                     lease.Register(this);
                                     _leases.Add(lease);
@@ -84,39 +94,24 @@ namespace EA.Gen.Addin
                                 var addin = (IAddin)o;
                                 _reals.Add(v, addin);
                             }
+                            catch (Exception e)
+                            {
+                                if (Environment.UserInteractive)
+                                    System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
+                                Log.Error(e, "Error {0}", e.Message);
+                            }
                         }
-                        catch (Exception e)
-                        {
-                            if (Environment.UserInteractive)
-                                System.Windows.Forms.MessageBox.Show("Assembly " + _model.Assembly + " not found", "EA.Gen.Addin not found", System.Windows.Forms.MessageBoxButtons.OK);
-                            Logger.Write(e.Message, "Startup", 10);
-                        }
-                        Logger.Write("Completed Connect", "Startup", 3);
+                        Log.Information("Completed Connect");
                     }
                     else
-                        Logger.Write("Invalid Script", "Startup", 3);
+                        Log.Error("Invalid Script");
                 }
             }
             catch (Exception e)
             {
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin script format error", System.Windows.Forms.MessageBoxButtons.OK);
-                Logger.Write(e.Message, "Startup", 10);
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        static AddinRouter() 
-        {
-            try
-            {
-                Logger.SetLogWriter(new LogWriterFactory().Create());
-            }
-            catch (Exception e)
-            {
-                System.Windows.Forms.MessageBox.Show(e.Message, "Error", System.Windows.Forms.MessageBoxButtons.OK);
+                Log.Error(e, "Error {0}", e.Message);
             }
         }
 
@@ -125,11 +120,13 @@ namespace EA.Gen.Addin
         /// <see cref="EA.Gen.Addin.IAddin"/>
         public override string EA_Connect(EA.Repository Repository)
         {
-            _reals = new Dictionary<string, IAddin>();
-            _reals.Add("EA.Gen.Addin.AboutAddin", new AboutAddin());
+            _reals = new Dictionary<string, IAddin>
+            {
+                { "EA.Gen.Addin.AboutAddin", new AboutAddin() }
+            };
             _model = new Model.Customisation
-                (new Model.Menu("EA.Gen.Addin", "EA.Gen.Addin.AboutAddin")
-                , "EA.Gen.Addin.AboutAddin"
+                ( new Model.Menu("EA.Gen.Addin", "EA.Gen.Addin.AboutAddin")
+                , new string[] { "EA.Gen.Addin" }
                 , new string[] { "EA.Gen.Addin.AboutAddin" }
                 , null
                 );
@@ -186,20 +183,21 @@ namespace EA.Gen.Addin
         {
             var m = _model.Menu.Find(MenuName, MenuLocation, _lastType)
                                .Find(ItemName, MenuLocation, _lastType);
-            IAddin a;
             try
             {
-                if (_reals.TryGetValue(m.Addin, out a))
+                if (_reals.TryGetValue(m.Addin, out IAddin a))
                     a.EA_MenuClick(Repository, MenuLocation, MenuName, ItemName);
             }
             catch (System.Runtime.Remoting.RemotingException re)
             {
-
+                Log.Error(re, "Remote error {0}", re.Message);
+                if (Environment.UserInteractive)
+                    System.Windows.Forms.MessageBox.Show(re.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
 
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -214,7 +212,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -229,7 +227,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -244,7 +242,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -258,7 +256,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -272,7 +270,7 @@ namespace EA.Gen.Addin
             Init(Repository);
 
             // always have at least one addin
-            if (_reals.Count == 0)
+             if (_reals.Count == 0)
                 EA_Connect(Repository);
             try
             {
@@ -280,7 +278,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -295,7 +293,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -315,7 +313,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -330,7 +328,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -345,7 +343,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -365,7 +363,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -386,7 +384,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -407,7 +405,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -428,7 +426,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -449,7 +447,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -470,7 +468,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -491,7 +489,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -510,7 +508,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -529,7 +527,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -548,7 +546,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -567,7 +565,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -586,7 +584,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -599,13 +597,13 @@ namespace EA.Gen.Addin
             try
             {
                 foreach (var r in _reals)
-                    if (r.Value.EA_OnPreNewMethod(Repository, Info))
+                    if (!r.Value.EA_OnPreNewMethod(Repository, Info))
                         return false;
                 return true;
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -624,7 +622,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -643,7 +641,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -659,7 +657,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -677,7 +675,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -696,7 +694,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -715,7 +713,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -734,7 +732,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -753,7 +751,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -772,7 +770,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -791,7 +789,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -810,7 +808,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -826,7 +824,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -844,7 +842,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -866,7 +864,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return null;
@@ -885,7 +883,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -904,7 +902,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -922,7 +920,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -939,7 +937,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return false;
@@ -955,7 +953,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -976,7 +974,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return null;
@@ -998,7 +996,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
                 return null;
@@ -1014,7 +1012,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1029,7 +1027,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1044,7 +1042,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1058,7 +1056,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1073,7 +1071,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1088,7 +1086,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1103,7 +1101,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1118,7 +1116,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1133,7 +1131,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1148,7 +1146,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1163,7 +1161,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1178,7 +1176,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1194,7 +1192,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1209,7 +1207,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1229,7 +1227,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1245,7 +1243,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1265,7 +1263,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1286,7 +1284,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1307,7 +1305,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1328,7 +1326,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1360,7 +1358,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1381,7 +1379,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1402,7 +1400,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1423,7 +1421,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1444,7 +1442,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1465,7 +1463,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1481,7 +1479,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1496,7 +1494,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }
@@ -1516,7 +1514,7 @@ namespace EA.Gen.Addin
             }
             catch (Exception e)
             {
-                Logger.Write(e.Message, "AddinRouter", 1);
+                Log.Error(e, "Error {0}", e.Message);
                 if (Environment.UserInteractive)
                     System.Windows.Forms.MessageBox.Show(e.Message, "EA.Gen.Addin", System.Windows.Forms.MessageBoxButtons.OK);
             }

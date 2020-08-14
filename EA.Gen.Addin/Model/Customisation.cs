@@ -23,13 +23,13 @@ namespace EA.Gen.Addin.Model
         /// Create a customidsation using the full set of parameters
         /// </summary>
         /// <param name="menu"></param>
-        /// <param name="assembly"></param>
+        /// <param name="assemblies"></param>
         /// <param name="addins"></param>
         /// <param name="config"></param>
-        public Customisation (Menu menu, string assembly, string[] addins, string config)
+        public Customisation (Menu menu, string[] assemblies, string[] addins, string config)
         {
             Menu = menu;
-            Assembly = assembly;
+            Assemblies = assemblies;
             Addins = addins;
             Config = config;
         }
@@ -50,20 +50,26 @@ namespace EA.Gen.Addin.Model
         /// <summary>
         /// Name of the assembly that contains the addins
         /// </summary>
-        [DataMember(IsRequired =true,Order =2)]
+        [DataMember ( IsRequired = true, Order = 2 )]
         public string Assembly;
+
+        /// <summary>
+        /// Name of the assembly that contains the addins
+        /// </summary>
+        [DataMember ( IsRequired = true, Order = 3 )]
+        public string[] Assemblies;
 
         /// <summary>
         /// list of addin names that are refered to in the menu
         /// Each addin gets notified of all events, so there should be no pulication between them
         /// </summary>
-        [DataMember(IsRequired =true, Order = 3)]
+        [DataMember (IsRequired =true, Order = 4)]
         public string[] Addins;
 
         /// <summary>
         /// Path to a configuraiton file with properties used by the addins
         /// </summary>
-        [DataMember(IsRequired =true, Order =4)]
+        [DataMember(IsRequired =true, Order = 5)]
         public string Config;
     }
 }

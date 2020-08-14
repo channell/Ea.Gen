@@ -1,0 +1,114 @@
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+	 xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <Product Id="*"
+					 Name="EA.Gen.Addin"
+					 Language="1033"
+					 Version="1.1.6.0"
+					 Manufacturer="Cepheis Ltd"
+					 UpgradeCode="E4133028-26F3-4706-A56C-EC262F18CC21">
+
+    <Package InstallerVersion="200"
+         Compressed="yes"
+         InstallScope="perMachine"
+         Description="Spaex Enterprise Architect Addin Router"
+         Comments="(c) Cepheis 2019" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of EA.GenAddin is already installed." />
+    <MediaTemplate EmbedCab="yes"/>
+
+	  <Feature Id="ProductFeature" Title="EA.Gen.Hub.Addin" Level="1">
+      <ComponentRef Id="cmpg4VUI_PKDbPZ9nTFiOctmW_x0Bg" />
+      <ComponentRef Id="cmpMK.oQu1tCKNoz2VjF.62IaK.jnU" />
+      <ComponentRef Id="cmpnRLTiPFZAEp8Qi2F21rTeg15eO4" />
+      <ComponentRef Id="cmpspID9621.37sktGUWEGztmSaQxQ" />
+      <ComponentRef Id="cmpOlRwk0A8GIfarCWe7bR7LUMrGvk" />
+	  <ComponentRef Id="Logging"/>
+    </Feature>
+  </Product>
+	<Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="Ceph" Name="Cepheis">
+          <Directory Id="INSTALLFOLDER" Name="Addin" />
+        </Directory>
+      </Directory>
+    </Directory>
+  </Fragment>
+
+  <Fragment>
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="cmpg4VUI_PKDbPZ9nTFiOctmW_x0Bg" Guid="{1D5C918C-16F3-4B39-8F1E-60FEFFE84324}">
+        <File Id="fil8TwDkxHfu1ZapqMqNJZE5ppG6m0" KeyPath="yes" Source="$(var.SolutionDir)SourceDir\EA.Gen.Addin.dll.config" />
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+  <Fragment>
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="cmpIID43PEWkFYEm.yXuuwZYtA_ozM" Guid="{564B1A43-E0C5-45D4-9494-896873AC1DFB}">
+        <File Id="filJAlgZoF8wlE.ktFwBciZV8G1GiE" KeyPath="yes" Source="$(var.SolutionDir)SourceDir\EA.Gen.Addin.tlb">
+          <TypeLib Id="{27B6792F-4247-41D1-A681-4D03ED3EDA2A}" Description="EA.Gen.Addin is a Sparx addin router to load actual addins using repository information" HelpDirectory="dirmD9PC8YWe5WAHpyEAZEPbJGM37s" Language="0" MajorVersion="2" MinorVersion="0">
+            <Interface Id="{1237C296-E081-3F4C-BBF6-B4B6C1144D83}" Name="_AddinRouter" ProxyStubClassId32="{00020424-0000-0000-C000-000000000046}" />
+            <Interface Id="{65DD9E17-ED31-47F9-B58B-50B24D104B44}" Name="IAddin" ProxyStubClassId32="{00020424-0000-0000-C000-000000000046}" />
+          </TypeLib>
+        </File>
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+  <Fragment>
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="cmpMK.oQu1tCKNoz2VjF.62IaK.jnU" Guid="{003BEB1C-3B6F-4148-AD6E-CA43FBF5B8EE}">
+        <File Id="filMUpzxZIByhF.2r0GJpSTweoTJdw" KeyPath="yes" Source="$(var.SolutionDir)SourceDir\EA.Gen.Addin.Help.chm" />
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+  <Fragment>
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="cmpnRLTiPFZAEp8Qi2F21rTeg15eO4" Guid="{445BD451-048A-4CC2-94DF-D3315426D51E}">
+        <File Id="filJbqHBM6ivtqnuj_qveG2_mxsXvo" KeyPath="yes" Source="$(var.SolutionDir)SourceDir\EA.Gen.Addin.xml" />
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+  <Fragment>
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="cmpspID9621.37sktGUWEGztmSaQxQ" Guid="{0244DE1E-C3A9-4E3B-8BD6-475557B20A6C}">
+        <Class Id="{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}" Context="InprocServer32" Description="EA.Gen.Addin.AddinRouter" ThreadingModel="both" ForeignServer="mscoree.dll">
+          <ProgId Id="EA.Gen.Addin.AddinRouter" Description="EA.Gen.Addin.AddinRouter" />
+        </Class>
+        <File Id="filqrarekLOW6g4u09iflsohQdKU4c" KeyPath="yes" Source="$(var.SolutionDir)SourceDir\EA.Gen.Addin.dll" />
+        <RegistryValue Root="HKCR" Key="CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\Implemented Categories\{62C8FE65-4EBB-45e7-B440-6E39B2CDBF29}" Value="" Type="string" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\InprocServer32\1.1.6.0" Name="Class" Value="EA.Gen.Addin.AddinRouter" Type="string" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\InprocServer32\1.1.6.0" Name="Assembly" Value="EA.Gen.Addin, Version=1.1.6.0, Culture=neutral, PublicKeyToken=f0395cb531b5118b" Type="string" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\InprocServer32\1.1.6.0" Name="RuntimeVersion" Value="v4.0.30319" Type="string" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\InprocServer32\1.1.6.0" Name="CodeBase" Value="file:///[#filqrarekLOW6g4u09iflsohQdKU4c]" Type="string" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\InprocServer32" Name="Class" Value="EA.Gen.Addin.AddinRouter" Type="string" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\InprocServer32" Name="Assembly" Value="EA.Gen.Addin, Version=1.1.7.0, Culture=neutral, PublicKeyToken=f0395cb531b5118b" Type="string" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\InprocServer32" Name="RuntimeVersion" Value="v4.0.30319" Type="string" Action="write" />
+        <RegistryValue Root="HKCR" Key="CLSID\{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}\InprocServer32" Name="CodeBase" Value="file:///[#filqrarekLOW6g4u09iflsohQdKU4c]" Type="string" Action="write" />
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+
+  <Fragment>
+	  <PropertyRef Id="NETFRAMEWORK40CLIENTINSTALLROOTDIR" />
+    <DirectoryRef Id="INSTALLFOLDER">
+	    <Component Id="Logging" Guid="{45A76E5B-2528-4C96-A465-340D32587B3D}">
+	    <CreateFolder/>
+	    <util:EventSource Log="Application" Name="EA.Gen.Addin"
+		    EventMessageFile="[NETFRAMEWORK40CLIENTINSTALLROOTDIR]\EventLogMessages.dll"/>
+	    </Component>
+    </DirectoryRef>
+  </Fragment>
+	
+<!-- 		    EventMessageFile="C:\Windows\Microsoft.NET\Framework\v4.0.30319\EventLogMessages.dll"/>
+-->	
+  <Fragment>
+    <DirectoryRef Id="TARGETDIR">
+      <Component Id="cmpOlRwk0A8GIfarCWe7bR7LUMrGvk" Guid="{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}" KeyPath="yes">
+        <RegistryKey Key="SOFTWARE\WOW6432Node\Sparx Systems\EAAddins\AddinRouter" Root="HKLM">
+          <RegistryValue Value="EA.Gen.Addin.AddinRouter" Type="string" />
+        </RegistryKey>
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+</Wix>
+

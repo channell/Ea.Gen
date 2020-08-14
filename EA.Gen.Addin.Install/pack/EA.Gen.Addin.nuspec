@@ -11,15 +11,12 @@
     <iconUrl>http://www.sparxsystems.com/favicon.ico</iconUrl>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <description>Sparx Enterprise Architect Addin router to load addin code specific to repository</description>
-    <releaseNotes>fixed COM+ registration</releaseNotes>
-    <copyright>Copyright Cepheis 2016</copyright>
+    <releaseNotes>Fixed COM+ registration</releaseNotes>
+    <copyright>Copyright Cepheis 2016,2020</copyright>
     <tags>
       Addin
       Cephei
       Sparx
     </tags>
-    <dependencies>
-      <dependency id="EA.Gen.Model" version="1.1.4" />
-    </dependencies>
   </metadata>
 </package>

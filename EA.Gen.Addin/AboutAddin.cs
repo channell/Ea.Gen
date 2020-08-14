@@ -25,5 +25,5 @@ namespace EA.Gen.Addin
             base.EA_MenuClick(Repository, MenuLocation, MenuName, ItemName);
         }
 
-    }
+    }   
 }

@@ -12,7 +12,7 @@ namespace EA.Gen.Addin
     [Guid("65DD9E17-ED31-47F9-B58B-50B24D104B44")]
     [InterfaceType(ComInterfaceType.InterfaceIsDual)]
     [ComVisible(true)]
-    public interface  IAddin
+    public interface IAddin
     {
         #region EA Add-In Events
 

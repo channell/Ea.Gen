@@ -46,5 +46,5 @@ Windows Registry Editor Version 5.00
 [HKEY_CLASSES_ROOT\EA.Gen.Addin.AddinRouter\CLSID]
 @="{2EFC4D86-18E8-4921-B098-BB3F371E5E8F}"
 
-[HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Sparx Systems\EAAddins\EA.Gen.Addin]
+[HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Sparx Systems\EAAddins\Addin Router]
 @="EA.Gen.Addin.AddinRouter"

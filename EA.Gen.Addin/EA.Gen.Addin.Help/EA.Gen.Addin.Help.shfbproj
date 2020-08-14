@@ -7,7 +7,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>33e4857b-f54d-4aff-b449-995edc31a9fd</ProjectGuid>
-    <SHFBSchemaVersion>1.9.9.0</SHFBSchemaVersion>
+    <SHFBSchemaVersion>2015.6.5.0</SHFBSchemaVersion>
     <!-- AssemblyName, Name, and RootNamespace are not used by SHFB but Visual Studio adds them anyway -->
     <AssemblyName>EA.Gen.Addin.Help</AssemblyName>
     <RootNamespace>EA.Gen.Addin.Help</RootNamespace>
@@ -66,7 +66,12 @@
     <DocumentationSources>
       <DocumentationSource sourceFile="..\EA.Gen.Addin.csproj" xmlns="" />
     </DocumentationSources>
-    <PostBuildEvent>copy $(SolutionDir)\EA.Gen.Addin.Help\Help\EA.Gen.Addin.chm $(SolutionDir)pack\lib</PostBuildEvent>
+    <PostBuildEvent>copy $(SolutionDir)EA.Gen.Addin\EA.Gen.Addin.Help\Help\EA.Gen.Addin.chm $(SolutionDir)EA.Gen.Addin\pack\lib
+xcopy /s $(SolutionDir)EA.Gen.Addin.Setup\EA.Gen.Addin.Setup\Express\DVD-5\DiskImages\DISK1 $(SolutionDir)EA.Gen.Addin\pack\lib\net45
+cd $(SolutionDir)EA.Gen.Addin\pack\lib\net45
+del Setup.*
+cd $(SolutionDir)EA.Gen.Addin\pack
+pack</PostBuildEvent>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
     <SccProjectName>SAK</SccProjectName>
     <SccProvider>SAK</SccProvider>
